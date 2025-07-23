@@ -79,6 +79,10 @@ export const validateFieldValue = (value, fieldDef) => {
         errors.push(`${fieldDef.name} must be an array`);
       }
       break;
+      
+    default:
+      // No validation rules for other field types
+      break;
   }
   
   return errors;
@@ -147,8 +151,31 @@ export const documentToForm = (document, schema) => {
         default:
           formData[field.name] = value;
       }
-    } else if (field.defaultValue !== undefined) {
-      formData[field.name] = field.defaultValue;
+    } else {
+      // Set proper default values to avoid null values in form
+      if (field.defaultValue !== undefined && field.defaultValue !== null) {
+        formData[field.name] = field.defaultValue;
+      } else {
+        switch (field.type) {
+          case 'STRING':
+          case 'ARRAY':
+          case 'OBJECT':
+            formData[field.name] = '';
+            break;
+          case 'INTEGER':
+          case 'DOUBLE':
+            formData[field.name] = '';
+            break;
+          case 'BOOLEAN':
+            formData[field.name] = false;
+            break;
+          case 'DATE':
+            formData[field.name] = null;
+            break;
+          default:
+            formData[field.name] = '';
+        }
+      }
     }
   });
   
@@ -156,7 +183,7 @@ export const documentToForm = (document, schema) => {
 };
 
 // Generate column configuration for DataGrid
-export const generateGridColumns = (schema, onEdit, onDelete, customDisplayConfig = {}) => {
+export const generateGridColumns = (schema, onEdit = null, onDelete = null, customDisplayConfig = {}) => {
   const columns = [];
   
   // Add columns based on schema fields
@@ -196,20 +223,22 @@ export const generateGridColumns = (schema, onEdit, onDelete, customDisplayConfi
     columns.push(column);
   });
   
-  // Add action column
-  columns.push({
-    field: 'actions',
-    headerName: 'Actions',
-    width: 150,
-    sortable: false,
-    filterable: false,
-    renderCell: (params) => (
-      <div>
-        <button onClick={() => onEdit(params.row)}>Edit</button>
-        <button onClick={() => onDelete(params.row.id)}>Delete</button>
-      </div>
-    ),
-  });
+  // Add action column only if onEdit or onDelete are provided
+  if (onEdit || onDelete) {
+    columns.push({
+      field: 'actions',
+      headerName: 'Actions',
+      width: 150,
+      sortable: false,
+      filterable: false,
+      renderCell: (params) => (
+        <div>
+          {onEdit && <button onClick={() => onEdit(params.row)}>Edit</button>}
+          {onDelete && <button onClick={() => onDelete(params.row.id)}>Delete</button>}
+        </div>
+      ),
+    });
+  }
   
   return columns;
 };

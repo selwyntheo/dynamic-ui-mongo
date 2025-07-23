@@ -92,6 +92,7 @@ const FileUploadDialog = ({ open, onClose, onSave }) => {
           fieldName: header.toLowerCase().replace(/[^a-zA-Z0-9]/g, '_'),
           fieldType: mapDataTypeToFieldType(dataTypes[index]),
           required: false,
+          primaryKey: false,
           originalDataType: dataTypes[index],
         }));
 
@@ -206,6 +207,7 @@ const FileUploadDialog = ({ open, onClose, onSave }) => {
           name: mapping.fieldName,
           type: mapping.fieldType,
           required: mapping.required,
+          primaryKey: mapping.primaryKey,
           description: `Imported from ${mapping.columnName}`,
         })),
         metadata: {
@@ -352,6 +354,7 @@ const FileUploadDialog = ({ open, onClose, onSave }) => {
                     <TableCell>Field Name</TableCell>
                     <TableCell>Data Type</TableCell>
                     <TableCell>Required</TableCell>
+                    <TableCell>Primary Key</TableCell>
                     <TableCell>Actions</TableCell>
                   </TableRow>
                 </TableHead>
@@ -368,7 +371,7 @@ const FileUploadDialog = ({ open, onClose, onSave }) => {
                       <TableCell>
                         <TextField
                           size="small"
-                          value={mapping.fieldName}
+                          value={mapping.fieldName || ''}
                           onChange={(e) => handleFieldMappingChange(index, 'fieldName', e.target.value)}
                           fullWidth
                         />
@@ -392,6 +395,28 @@ const FileUploadDialog = ({ open, onClose, onSave }) => {
                           <Select
                             value={mapping.required}
                             onChange={(e) => handleFieldMappingChange(index, 'required', e.target.value)}
+                          >
+                            <MenuItem value={true}>Yes</MenuItem>
+                            <MenuItem value={false}>No</MenuItem>
+                          </Select>
+                        </FormControl>
+                      </TableCell>
+                      <TableCell>
+                        <FormControl size="small">
+                          <Select
+                            value={mapping.primaryKey}
+                            onChange={(e) => {
+                              // If setting as primary key, ensure it's also required
+                              const isPrimaryKey = e.target.value;
+                              handleFieldMappingChange(index, 'primaryKey', isPrimaryKey);
+                              if (isPrimaryKey) {
+                                handleFieldMappingChange(index, 'required', true);
+                                // Clear other primary keys
+                                setFieldMappings(prev => prev.map((m, i) => 
+                                  i !== index ? { ...m, primaryKey: false } : m
+                                ));
+                              }
+                            }}
                           >
                             <MenuItem value={true}>Yes</MenuItem>
                             <MenuItem value={false}>No</MenuItem>
@@ -449,6 +474,7 @@ const FileUploadDialog = ({ open, onClose, onSave }) => {
                     <TableCell>Field Name</TableCell>
                     <TableCell>Type</TableCell>
                     <TableCell>Required</TableCell>
+                    <TableCell>Primary Key</TableCell>
                     <TableCell>Source Column</TableCell>
                   </TableRow>
                 </TableHead>
@@ -458,6 +484,7 @@ const FileUploadDialog = ({ open, onClose, onSave }) => {
                       <TableCell><strong>{mapping.fieldName}</strong></TableCell>
                       <TableCell>{mapping.fieldType}</TableCell>
                       <TableCell>{mapping.required ? 'Yes' : 'No'}</TableCell>
+                      <TableCell>{mapping.primaryKey ? 'Yes' : 'No'}</TableCell>
                       <TableCell>{mapping.columnName}</TableCell>
                     </TableRow>
                   ))}

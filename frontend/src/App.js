@@ -9,6 +9,8 @@ import {
   Toolbar,
   Button,
   Chip,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -17,6 +19,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import CollectionManagement from './pages/CollectionManagement';
 import DocumentManagement from './pages/DocumentManagement';
+import DataViewer from './pages/DataViewer';
 import { healthApi } from './services/api';
 
 // Create Material-UI theme
@@ -91,6 +94,13 @@ function App() {
     setSelectedSchema(null);
   };
 
+  const handleTabChange = (event, newValue) => {
+    setCurrentView(newValue);
+    if (newValue !== 'documents') {
+      setSelectedSchema(null);
+    }
+  };
+
   const getStatusColor = () => {
     switch (apiStatus) {
       case 'connected':
@@ -161,6 +171,27 @@ function App() {
                   </Button>
                 </Box>
               </Toolbar>
+              
+              {/* Navigation Tabs */}
+              {apiStatus === 'connected' && (
+                <Box sx={{ borderBottom: 1, borderColor: 'divider', bgcolor: 'background.paper' }}>
+                  <Tabs 
+                    value={currentView === 'documents' ? 'schemas' : currentView} 
+                    onChange={handleTabChange}
+                    sx={{ 
+                      '& .MuiTab-root': { 
+                        color: 'text.primary',
+                        '&.Mui-selected': {
+                          color: 'primary.main'
+                        }
+                      }
+                    }}
+                  >
+                    <Tab label="Collection Management" value="schemas" />
+                    <Tab label="Data Viewer" value="dataviewer" />
+                  </Tabs>
+                </Box>
+              )}
             </AppBar>
 
             {/* Main Content */}
@@ -192,7 +223,11 @@ function App() {
               {apiStatus === 'connected' && (
                 <>
                   {currentView === 'schemas' && (
-                    <CollectionManagement onSchemaSelect={handleCollectionSelect} />
+                    <CollectionManagement onCollectionSelect={handleCollectionSelect} />
+                  )}
+
+                  {currentView === 'dataviewer' && (
+                    <DataViewer />
                   )}
 
                   {currentView === 'documents' && selectedSchema && (

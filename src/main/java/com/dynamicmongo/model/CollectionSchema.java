@@ -57,4 +57,16 @@ public class CollectionSchema {
     
     public String getCreatedBy() { return createdBy; }
     public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+    
+    // Helper method to get primary key fields
+    public List<FieldDefinition> getPrimaryKeyFields() {
+        return fields.stream()
+                .filter(FieldDefinition::isPrimaryKey)
+                .collect(java.util.stream.Collectors.toList());
+    }
+    
+    // Helper method to check if collection has primary keys
+    public boolean hasPrimaryKeys() {
+        return fields.stream().anyMatch(FieldDefinition::isPrimaryKey);
+    }
 }

@@ -38,6 +38,12 @@ apiClient.interceptors.response.use(
 // Schema Management APIs
 export const schemaApi = {
   // Get all schemas
+  getSchemas: async () => {
+    const response = await apiClient.get('/schemas');
+    return response;
+  },
+
+  // Get all schemas (alias for compatibility)
   getAllSchemas: async () => {
     const response = await apiClient.get('/schemas');
     return response.data;
@@ -46,7 +52,7 @@ export const schemaApi = {
   // Get specific schema
   getSchema: async (collectionName) => {
     const response = await apiClient.get(`/schemas/${collectionName}`);
-    return response.data;
+    return response;
   },
 
   // Create new schema
@@ -66,11 +72,33 @@ export const schemaApi = {
     const response = await apiClient.delete(`/schemas/${collectionName}`);
     return response.data;
   },
+
+  // Check if collection exists
+  checkCollectionExists: async (collectionName) => {
+    const response = await apiClient.get(`/schemas/${collectionName}/exists`);
+    return response.data;
+  },
 };
 
 // Document Management APIs
 export const documentApi = {
-  // Get all documents in a collection
+  // Get all documents in a collection with optional filters
+  getDocuments: async (collectionName, filters = {}) => {
+    const queryParams = new URLSearchParams();
+    
+    // Add filters as query parameters
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && value !== '') {
+        queryParams.append(key, value);
+      }
+    });
+    
+    const url = `/collections/${collectionName}/documents${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await apiClient.get(url);
+    return response;
+  },
+
+  // Get all documents in a collection with pagination (legacy method)
   getAllDocuments: async (collectionName, page = 0, size = 10) => {
     const response = await apiClient.get(`/collections/${collectionName}/documents`, {
       params: { page, size }

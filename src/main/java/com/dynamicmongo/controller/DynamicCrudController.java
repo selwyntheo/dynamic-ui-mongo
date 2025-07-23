@@ -149,6 +149,26 @@ public class DynamicCrudController {
     }
     
     @Operation(
+        summary = "Check if a collection exists",
+        description = "Checks if a collection schema exists in the database"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Collection existence check completed",
+            content = @Content(mediaType = "application/json",
+                examples = @ExampleObject(value = "{\"exists\": true, \"collectionName\": \"products\"}")))
+    })
+    @GetMapping("/schemas/{collectionName}/exists")
+    public ResponseEntity<Map<String, Object>> checkCollectionExists(
+        @Parameter(description = "Name of the collection", example = "products")
+        @PathVariable String collectionName) {
+        boolean exists = crudService.getSchema(collectionName).isPresent();
+        return ResponseEntity.ok(Map.of(
+            "exists", exists,
+            "collectionName", collectionName
+        ));
+    }
+    
+    @Operation(
         summary = "Create a new document",
         description = "Creates a new document in the specified collection"
     )

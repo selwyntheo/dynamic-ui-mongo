@@ -27,7 +27,7 @@ import {
   Delete as DeleteIcon,
   ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
-import { FIELD_TYPES, VALIDATION_RULES } from '../services/api';
+import { FIELD_TYPES, VALIDATION_RULES, schemaApi } from '../services/api';
 import { generateId } from '../utils/helpers';
 
 const SchemaDialog = ({ open, onClose, onSave, schema = null, mode = 'create' }) => {
@@ -41,7 +41,11 @@ const SchemaDialog = ({ open, onClose, onSave, schema = null, mode = 'create' })
     if (schema && mode === 'edit') {
       setFormData({
         collectionName: schema.collectionName || '',
-        fields: schema.fields || []
+        fields: (schema.fields || []).map(field => ({
+          ...field,
+          id: generateId(), // Add temporary id for frontend management
+          primaryKey: field.primaryKey || false // Ensure primaryKey is set
+        }))
       });
     } else {
       setFormData({
@@ -74,6 +78,7 @@ const SchemaDialog = ({ open, onClose, onSave, schema = null, mode = 'create' })
       name: '',
       type: 'STRING',
       required: false,
+      primaryKey: false,
       defaultValue: '',
       validation: {}
     };
@@ -118,15 +123,34 @@ const SchemaDialog = ({ open, onClose, onSave, schema = null, mode = 'create' })
     }));
   };
 
-  const validateForm = () => {
+  const validateForm = async () => {
     const newErrors = {};
     
     if (!formData.collectionName.trim()) {
       newErrors.collectionName = 'Collection name is required';
+    } else if (mode === 'create') {
+      // Check if collection already exists
+      try {
+        const existsResult = await schemaApi.checkCollectionExists(formData.collectionName);
+        if (existsResult.exists) {
+          newErrors.collectionName = 'Collection with this name already exists';
+        }
+      } catch (err) {
+        console.error('Error checking collection existence:', err);
+        // Don't block creation if check fails
+      }
     }
     
     if (formData.fields.length === 0) {
       newErrors.fields = 'At least one field is required';
+    }
+    
+    // Check for primary key validation
+    const primaryKeyFields = formData.fields.filter(field => field.primaryKey);
+    if (primaryKeyFields.length > 1) {
+      primaryKeyFields.forEach(field => {
+        newErrors[`field_${field.id}_primaryKey`] = 'Only one field can be marked as primary key';
+      });
     }
     
     formData.fields.forEach((field, index) => {
@@ -147,8 +171,8 @@ const SchemaDialog = ({ open, onClose, onSave, schema = null, mode = 'create' })
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSave = () => {
-    if (!validateForm()) return;
+  const handleSave = async () => {
+    if (!(await validateForm())) return;
     
     const schemaData = {
       ...formData,
@@ -208,7 +232,7 @@ const SchemaDialog = ({ open, onClose, onSave, schema = null, mode = 'create' })
           <TextField
             name="collectionName"
             label="Collection Name"
-            value={formData.collectionName}
+            value={formData.collectionName || ''}
             onChange={handleInputChange}
             fullWidth
             disabled={mode === 'edit'}
@@ -253,9 +277,18 @@ const SchemaDialog = ({ open, onClose, onSave, schema = null, mode = 'create' })
                       label="Required"
                       size="small"
                       color="error"
+                      sx={{ mr: 1 }}
+                    />
+                  )}
+                  {field.primaryKey && (
+                    <Chip
+                      label="Primary Key"
+                      size="small"
+                      color="secondary"
                       sx={{ mr: 2 }}
                     />
                   )}
+                  {!field.primaryKey && !field.required && <Box sx={{ mr: 2 }} />}
                   <IconButton
                     onClick={(e) => {
                       e.stopPropagation();
@@ -274,7 +307,7 @@ const SchemaDialog = ({ open, onClose, onSave, schema = null, mode = 'create' })
                   <Grid item xs={6}>
                     <TextField
                       label="Field Name"
-                      value={field.name}
+                      value={field.name || ''}
                       onChange={(e) => updateField(field.id, { name: e.target.value })}
                       fullWidth
                       error={!!errors[`field_${field.id}_name`]}
@@ -315,9 +348,43 @@ const SchemaDialog = ({ open, onClose, onSave, schema = null, mode = 'create' })
                   </Grid>
                   
                   <Grid item xs={6}>
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={field.primaryKey}
+                          onChange={(e) => {
+                            const isPrimaryKey = e.target.checked;
+                            updateField(field.id, { 
+                              primaryKey: isPrimaryKey,
+                              required: isPrimaryKey ? true : field.required // Primary keys are automatically required
+                            });
+                            
+                            // Clear other primary keys if setting this one as primary
+                            if (isPrimaryKey) {
+                              setFormData(prev => ({
+                                ...prev,
+                                fields: prev.fields.map(f => 
+                                  f.id !== field.id ? { ...f, primaryKey: false } : f
+                                )
+                              }));
+                            }
+                          }}
+                        />
+                      }
+                      label="Primary Key"
+                      error={!!errors[`field_${field.id}_primaryKey`]}
+                    />
+                    {errors[`field_${field.id}_primaryKey`] && (
+                      <Typography variant="caption" color="error" display="block">
+                        {errors[`field_${field.id}_primaryKey`]}
+                      </Typography>
+                    )}
+                  </Grid>
+                  
+                  <Grid item xs={6}>
                     <TextField
                       label="Default Value"
-                      value={field.defaultValue}
+                      value={field.defaultValue || ''}
                       onChange={(e) => updateField(field.id, { defaultValue: e.target.value })}
                       fullWidth
                     />

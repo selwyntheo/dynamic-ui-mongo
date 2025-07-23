@@ -18,7 +18,7 @@ import {
 } from '@mui/icons-material';
 import { DataGrid } from '@mui/x-data-grid';
 import { documentApi } from '../services/api';
-import DocumentDialog from '../components/DocumentDialog';
+import DynamicFormDialog from '../components/DynamicFormDialog';
 import GridConfigDialog from '../components/GridConfigDialog';
 import { generateGridColumns, formatFieldValue } from '../utils/helpers';
 import { useSnackbar } from 'notistack';
@@ -294,8 +294,8 @@ const DocumentManagement = ({ schema, onBack }) => {
         />
       </Box>
 
-      {/* Document Dialog */}
-      <DocumentDialog
+      {/* Dynamic Form Dialog */}
+      <DynamicFormDialog
         open={documentDialogOpen}
         onClose={() => setDocumentDialogOpen(false)}
         onSave={handleSaveDocument}

@@ -62,7 +62,7 @@ fi
 
 # Start backend in background
 echo "🚀 Starting backend server..."
-nohup java -jar target/dynamic-mongo-crud-0.0.1-SNAPSHOT.jar > backend.log 2>&1 &
+nohup java -jar target/dynamic-mongo-crud-1.0.0.jar > backend.log 2>&1 &
 BACKEND_PID=$!
 
 # Wait for backend to start

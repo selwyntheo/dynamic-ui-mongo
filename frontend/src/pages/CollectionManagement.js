@@ -11,6 +11,10 @@ import {
   Tooltip,
   Alert,
   Skeleton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -19,11 +23,13 @@ import {
   Visibility as ViewIcon,
   Storage as StorageIcon,
   CloudUpload as UploadIcon,
+  TableChart as TableIcon,
 } from '@mui/icons-material';
-import { schemaApi } from '../services/api';
+import { DataGrid } from '@mui/x-data-grid';
+import { schemaApi, documentApi } from '../services/api';
 import SchemaDialog from '../components/SchemaDialog';
 import FileUploadDialog from '../components/FileUploadDialog';
-import { formatDate } from '../utils/helpers';
+import { formatDate, generateGridColumns } from '../utils/helpers';
 import { useSnackbar } from 'notistack';
 
 const CollectionManagement = ({ onCollectionSelect }) => {
@@ -34,6 +40,13 @@ const CollectionManagement = ({ onCollectionSelect }) => {
   const [fileUploadDialogOpen, setFileUploadDialogOpen] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState(null);
   const [dialogMode, setDialogMode] = useState('create');
+  
+  // Data preview dialog state
+  const [dataPreviewOpen, setDataPreviewOpen] = useState(false);
+  const [previewData, setPreviewData] = useState([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewSchema, setPreviewSchema] = useState(null);
+  
   const { enqueueSnackbar } = useSnackbar();
 
   useEffect(() => {
@@ -104,6 +117,28 @@ const CollectionManagement = ({ onCollectionSelect }) => {
     if (onCollectionSelect) {
       onCollectionSelect(collection);
     }
+  };
+
+  const handleViewData = async (collection) => {
+    setPreviewSchema(collection);
+    setDataPreviewOpen(true);
+    setPreviewLoading(true);
+    try {
+      const response = await documentApi.getDocuments(collection.collectionName);
+      setPreviewData(response.data || []);
+    } catch (err) {
+      console.error('Error loading documents:', err);
+      enqueueSnackbar('Failed to load documents', { variant: 'error' });
+      setPreviewData([]);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleCloseDataPreview = () => {
+    setDataPreviewOpen(false);
+    setPreviewData([]);
+    setPreviewSchema(null);
   };
 
   if (loading) {
@@ -253,14 +288,26 @@ const CollectionManagement = ({ onCollectionSelect }) => {
               </CardContent>
 
               <Box sx={{ p: 2, pt: 0 }}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<ViewIcon />}
-                  onClick={() => handleViewDocuments(collection)}
-                >
-                  Manage Documents
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    startIcon={<TableIcon />}
+                    onClick={() => handleViewData(collection)}
+                    size="small"
+                  >
+                    View Data
+                  </Button>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    startIcon={<ViewIcon />}
+                    onClick={() => handleViewDocuments(collection)}
+                    size="small"
+                  >
+                    Manage Documents
+                  </Button>
+                </Box>
               </Box>
             </Card>
           </Grid>
@@ -280,6 +327,62 @@ const CollectionManagement = ({ onCollectionSelect }) => {
         onClose={() => setFileUploadDialogOpen(false)}
         onSave={handleSaveCollection}
       />
+
+      {/* Data Preview Dialog */}
+      <Dialog 
+        open={dataPreviewOpen} 
+        onClose={handleCloseDataPreview} 
+        maxWidth="lg" 
+        fullWidth
+        sx={{
+          '& .MuiDialog-paper': {
+            height: '80vh',
+          },
+        }}
+      >
+        <DialogTitle>
+          {previewSchema ? `${previewSchema.collectionName} - Data Preview` : 'Data Preview'}
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          {previewLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <Typography>Loading data...</Typography>
+            </Box>
+          ) : (
+            <Box sx={{ height: '60vh', width: '100%' }}>
+              {previewSchema && (
+                <DataGrid
+                  rows={previewData}
+                  columns={generateGridColumns(previewSchema, null, {})}
+                  loading={previewLoading}
+                  pageSizeOptions={[10, 25, 50]}
+                  paginationModel={{ page: 0, pageSize: 25 }}
+                  disableRowSelectionOnClick
+                  sx={{
+                    '& .MuiDataGrid-root': {
+                      border: 'none',
+                    },
+                  }}
+                />
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDataPreview}>Close</Button>
+          {previewSchema && (
+            <Button 
+              variant="contained" 
+              onClick={() => {
+                handleCloseDataPreview();
+                handleViewDocuments(previewSchema);
+              }}
+            >
+              Manage Documents
+            </Button>
+          )}
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

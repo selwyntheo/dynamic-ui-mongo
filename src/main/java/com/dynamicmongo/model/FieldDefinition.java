@@ -17,6 +17,9 @@ public class FieldDefinition {
     @Schema(description = "Whether the field is required", example = "true")
     private boolean required;
     
+    @Schema(description = "Whether the field is a primary key", example = "false")
+    private boolean primaryKey;
+    
     @Schema(description = "Default value for the field", example = "default value")
     private Object defaultValue;
     
@@ -33,6 +36,14 @@ public class FieldDefinition {
         this.name = name;
         this.type = type;
         this.required = required;
+        this.primaryKey = false;
+    }
+    
+    public FieldDefinition(String name, String type, boolean required, boolean primaryKey) {
+        this.name = name;
+        this.type = type;
+        this.required = required;
+        this.primaryKey = primaryKey;
     }
     
     // Getters and Setters
@@ -44,6 +55,9 @@ public class FieldDefinition {
     
     public boolean isRequired() { return required; }
     public void setRequired(boolean required) { this.required = required; }
+    
+    public boolean isPrimaryKey() { return primaryKey; }
+    public void setPrimaryKey(boolean primaryKey) { this.primaryKey = primaryKey; }
     
     public Object getDefaultValue() { return defaultValue; }
     public void setDefaultValue(Object defaultValue) { this.defaultValue = defaultValue; }

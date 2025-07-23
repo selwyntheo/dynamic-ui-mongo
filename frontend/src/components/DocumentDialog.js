@@ -32,11 +32,32 @@ const DocumentDialog = ({ open, onClose, onSave, schema, document = null, mode =
       if (document && mode === 'edit') {
         setFormData(documentToForm(document, schema));
       } else {
-        // Initialize with default values
+        // Initialize with default values and ensure no null values
         const initialData = {};
         schema.fields.forEach(field => {
-          if (field.defaultValue !== undefined) {
+          if (field.defaultValue !== undefined && field.defaultValue !== null) {
             initialData[field.name] = field.defaultValue;
+          } else {
+            // Set proper default values based on field type to avoid null values
+            switch (field.type) {
+              case 'STRING':
+              case 'ARRAY':
+              case 'OBJECT':
+                initialData[field.name] = '';
+                break;
+              case 'INTEGER':
+              case 'DOUBLE':
+                initialData[field.name] = '';
+                break;
+              case 'BOOLEAN':
+                initialData[field.name] = false;
+                break;
+              case 'DATE':
+                initialData[field.name] = null;
+                break;
+              default:
+                initialData[field.name] = '';
+            }
           }
         });
         setFormData(initialData);
@@ -83,7 +104,29 @@ const DocumentDialog = ({ open, onClose, onSave, schema, document = null, mode =
   };
 
   const renderField = (field) => {
-    const value = formData[field.name] || '';
+    // Handle null/undefined values properly for different field types
+    const getValue = () => {
+      const fieldValue = formData[field.name];
+      if (fieldValue === null || fieldValue === undefined) {
+        switch (field.type) {
+          case 'INTEGER':
+          case 'DOUBLE':
+            return '';
+          case 'BOOLEAN':
+            return false;
+          case 'DATE':
+            return null;
+          case 'ARRAY':
+          case 'OBJECT':
+            return '';
+          default:
+            return '';
+        }
+      }
+      return fieldValue;
+    };
+
+    const value = getValue();
     const error = errors[field.name];
 
     switch (field.type) {
@@ -92,7 +135,7 @@ const DocumentDialog = ({ open, onClose, onSave, schema, document = null, mode =
           <TextField
             key={field.name}
             label={field.name}
-            value={value}
+            value={value || ''}
             onChange={(e) => handleInputChange(field.name, e.target.value)}
             fullWidth
             required={field.required}
@@ -109,7 +152,7 @@ const DocumentDialog = ({ open, onClose, onSave, schema, document = null, mode =
             key={field.name}
             label={field.name}
             type="number"
-            value={value}
+            value={value || ''}
             onChange={(e) => handleInputChange(field.name, e.target.value)}
             fullWidth
             required={field.required}
@@ -129,7 +172,7 @@ const DocumentDialog = ({ open, onClose, onSave, schema, document = null, mode =
             key={field.name}
             label={field.name}
             type="number"
-            value={value}
+            value={value || ''}
             onChange={(e) => handleInputChange(field.name, e.target.value)}
             fullWidth
             required={field.required}
@@ -182,7 +225,7 @@ const DocumentDialog = ({ open, onClose, onSave, schema, document = null, mode =
           <TextField
             key={field.name}
             label={`${field.name} (JSON Array)`}
-            value={value}
+            value={value || ''}
             onChange={(e) => handleInputChange(field.name, e.target.value)}
             fullWidth
             required={field.required}
@@ -199,7 +242,7 @@ const DocumentDialog = ({ open, onClose, onSave, schema, document = null, mode =
           <TextField
             key={field.name}
             label={`${field.name} (JSON Object)`}
-            value={value}
+            value={value || ''}
             onChange={(e) => handleInputChange(field.name, e.target.value)}
             fullWidth
             required={field.required}
@@ -216,7 +259,7 @@ const DocumentDialog = ({ open, onClose, onSave, schema, document = null, mode =
           <TextField
             key={field.name}
             label={field.name}
-            value={value}
+            value={value || ''}
             onChange={(e) => handleInputChange(field.name, e.target.value)}
             fullWidth
             required={field.required}
