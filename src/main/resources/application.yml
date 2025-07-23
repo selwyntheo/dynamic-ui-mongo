@@ -1,0 +1,65 @@
+spring:
+  application:
+    name: dynamic-mongo-crud
+  
+  data:
+    mongodb:
+      uri: mongodb://localhost:27017/dynamic_db
+      database: dynamic_db
+  
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=10m
+  
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      group-id: dynamic-mongo-group
+
+server:
+  port: 8080
+
+security:
+  jwt:
+    secret: myVerySecretKeyForJWTTokenGenerationAndValidation123456789
+    expiration: 86400
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,caches
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.dynamicmongo: DEBUG
+    org.springframework.data.mongodb: INFO
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Swagger/OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+    tryItOutEnabled: true
+    filter: true
+    displayRequestDuration: true
+  show-actuator: false
+  group-configs:
+    - group: 'dynamic-mongo-crud'
+      paths-to-match: '/api/**'
+      packages-to-scan: 'com.dynamicmongo.controller'

@@ -1,0 +1,9 @@
+spring:
+  data:
+    mongodb:
+      database: test_dynamic_db
+  kafka:
+    bootstrap-servers: # Empty for tests
+logging:
+  level:
+    com.dynamicmongo: INFO
