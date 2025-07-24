@@ -122,7 +122,17 @@ const DocumentManagement = ({ schema, onBack }) => {
       loadDocuments();
     } catch (err) {
       console.error('Error saving document:', err);
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to save document';
+      
+      // Handle validation errors properly
+      let errorMessage = 'Failed to save document';
+      if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
       enqueueSnackbar(errorMessage, { variant: 'error' });
     }
   };

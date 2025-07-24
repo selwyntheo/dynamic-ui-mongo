@@ -95,35 +95,78 @@ export const formToDocument = (formData, schema) => {
   schema.fields.forEach(field => {
     const value = formData[field.name];
     
-    if (value !== undefined && value !== '') {
+    // Include all fields except undefined values, but allow empty strings and null values
+    // so backend validation can properly check required fields
+    if (value !== undefined) {
       switch (field.type) {
         case 'INTEGER':
-          document[field.name] = parseInt(value, 10);
+          // Handle empty string as undefined for optional fields, but preserve for required validation
+          if (value === '' || value === null) {
+            if (field.required) {
+              document[field.name] = ''; // Let backend validate empty required field
+            }
+            // Skip optional empty fields
+          } else {
+            const intValue = parseInt(value, 10);
+            document[field.name] = isNaN(intValue) ? value : intValue;
+          }
           break;
         case 'DOUBLE':
-          document[field.name] = parseFloat(value);
+          // Handle empty string as undefined for optional fields, but preserve for required validation
+          if (value === '' || value === null) {
+            if (field.required) {
+              document[field.name] = ''; // Let backend validate empty required field
+            }
+            // Skip optional empty fields
+          } else {
+            const floatValue = parseFloat(value);
+            document[field.name] = isNaN(floatValue) ? value : floatValue;
+          }
           break;
         case 'BOOLEAN':
           document[field.name] = Boolean(value);
           break;
         case 'DATE':
-          document[field.name] = dayjs(value).toISOString();
+          if (value === '' || value === null) {
+            if (field.required) {
+              document[field.name] = ''; // Let backend validate empty required field
+            }
+            // Skip optional empty fields
+          } else {
+            document[field.name] = dayjs(value).toISOString();
+          }
           break;
         case 'ARRAY':
-          try {
-            document[field.name] = Array.isArray(value) ? value : JSON.parse(value);
-          } catch (e) {
-            document[field.name] = value;
+          if (value === '' || value === null) {
+            if (field.required) {
+              document[field.name] = ''; // Let backend validate empty required field
+            }
+            // Skip optional empty fields
+          } else {
+            try {
+              document[field.name] = Array.isArray(value) ? value : JSON.parse(value);
+            } catch (e) {
+              document[field.name] = value;
+            }
           }
           break;
         case 'OBJECT':
-          try {
-            document[field.name] = typeof value === 'object' ? value : JSON.parse(value);
-          } catch (e) {
-            document[field.name] = value;
+          if (value === '' || value === null) {
+            if (field.required) {
+              document[field.name] = ''; // Let backend validate empty required field
+            }
+            // Skip optional empty fields
+          } else {
+            try {
+              document[field.name] = typeof value === 'object' ? value : JSON.parse(value);
+            } catch (e) {
+              document[field.name] = value;
+            }
           }
           break;
         default:
+          // For STRING and other types, always include the value (even empty strings)
+          // so backend can validate required fields
           document[field.name] = value;
       }
     }
